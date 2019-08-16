@@ -1,20 +1,22 @@
 library(shiny)
 library(shinyjs)
-library(tm)
-library(wordcloud2)
-library(stringr)
+library(shinyalert)
+
 library(ggplot2) 
+library(ggExtra)
+library(graph)
+library(wordcloud2)
+
+library(tm)
+library(stringr)
 library(DT)
 library(lexiconPT)
 library(tidyverse)
 library(tidytext)
 library(magrittr)
-library(ggExtra)
-library(shinyalert)
 
-# Grafo de palavras
-library(graph)
 library(Rgraphviz)
+library(BiocGenerics)
 
 #############
 # Preparação do texto carregado
