@@ -20,7 +20,7 @@ Para isto, basta abrir o arquivo <b>install.R</b> no RStudio, selecionar todo o 
 
 <h3> Código do RAnalyzer </h3>
 
-Basta baixar o código para o computador, clicando no botão verde <b>Clone or download</b> e escolher <b>Download ZIP</b>. Após isto, basta descompactar o arquivo ZIP, abrir o arquivo <b>run.R</b> no RStudio e executar.
+Basta baixar o código para o computador, clicando no botão verde <b>Clone or download</b> e escolher <b>Download ZIP</b>. Após isto, basta descompactar o arquivo ZIP dentro do diretório R (pasta de Documentos do usuário), renomear a pasta para "ranalyzer", abrir o arquivo <b>run.R</b> no RStudio e executar.
 
 <h2> Contato </h2>
 
