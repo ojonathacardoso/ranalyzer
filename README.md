@@ -8,7 +8,7 @@ A ferramenta foi desenvolvida para ser capaz de fornecer informações e conheci
 
 <h2> Instalação </h2>
 
-O processo de instalação é bem simples. Em primeiro lugar, você deve baixar um arquivo ZIP, disponível <a href="github.com/ojonathacardoso/ranalyzer-adds/archive/master.zip">aqui</a>. Após isto, descompacte-o em qualquer pasta do computador.
+O processo de instalação é bem simples. Em primeiro lugar, você deve baixar um arquivo ZIP, disponível <a href="https://github.com/ojonathacardoso/ranalyzer-adds/archive/master.zip">aqui</a>. Após isto, descompacte-o em qualquer pasta do computador.
 
 Em seguida, basta abrir a pasta "Install" e dar dois cliques no arquivo <b>instalador_ranalyzer.bat</b>. Vai aparecer uma janela preta do Prompt de Comando e 
 os arquivos da linguagem R e do <i>software</i> começarão a ser baixados, instalados e/ou copiados.
