@@ -39,7 +39,7 @@ Se você tiver interesse em usar não apenas o RAnalyzer, mas as demais ferramen
 
 <h2> Citação bibliográfica </h2>
 
-CARDOSO, Jonatha Martins. <b>Mineração de texto em fontes da Internet, com enfoque na Administração Pública e Atividade Política</b>.   
+CARDOSO, Jonatha Martins. <b>Mineração de texto em fontes da Internet, com enfoque na Administração Pública e Atividade Política</b>. 2019. Trabalho de Conclusão de Curso (Monografia) – Curso de Sistemas de Informação, Universidade Feevale, Novo Hamburgo, RS, 2019.
 
 <h2> Contato </h2>
 
