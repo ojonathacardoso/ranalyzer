@@ -67,7 +67,7 @@ fluidPage(
                              column(3,
                                     br(),
                                     helpText("Selecione a frequência mínima de aparição
-                                         de uma palavra no texto."),
+                                         de uma palavra no texto. "),
                                     sliderInput("palavrasSlider",
                                                 "Frequência de ocorrência",
                                                 min = 1,
@@ -93,7 +93,8 @@ fluidPage(
                            fluidRow(
                              column(3,
                                 br(),
-                                helpText("Selecione o nível da frequência para alterar a nuvem."),
+                                helpText("Selecione o nível da frequência para alterar a nuvem.
+                                         Quanto menor o nível, mais palavras com maior frequência aparecerão."),
                                 sliderInput("nuvemSlider",
                                              "Nível de Frequência",
                                              min = 0.5,
@@ -215,8 +216,8 @@ fluidPage(
                            fluidRow(
                              column(3,
                                br(),
-                               helpText("Selecione a correlação mínima entre
-                                a palavra selecionada e os resultados."),
+                               helpText("Selecione a correlação mínima (em %) entre
+                                a palavra selecionada e os resultados obtidos."),
                                sliderInput("correlacoesCorrSlider",
                                            "Correlação mínima",
                                            min = 5,
@@ -225,7 +226,7 @@ fluidPage(
                                            step = 5
                                ),
                                helpText("Selecione a quantidade máxima de palavras
-                                 correlacionadas que serão exibidas."),
+                                 correlacionadas que serão exibidas no gráfico."),
                                sliderInput("correlacoesQtdeSlider",
                                            "Quantidade de palavras",
                                            min = 5,
@@ -268,6 +269,10 @@ fluidPage(
                                     br(),
                                     actionButton("ajudaSentimentos", "Leia mais"),
                                     br(),br(),
+                                    helpText("O retângulo verde representa as frases ou parágrafos positivos.
+                                             O retângulo vermelho representa os negativos.
+                                             Quanto maior o ponto, mais frases ou parágrafos ele representa."),
+                                    br(),
                                     htmlOutput("sentimentosFrases")
                              ),
                              column(8,
