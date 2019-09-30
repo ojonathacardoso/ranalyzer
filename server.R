@@ -16,7 +16,7 @@ function(input, output, session) {
       textoLimitado <- NULL
       
       # Verifica total de linhas e analisa limite informado pelo usuário
-      totalLinhas <- length(textoArquivo)
+      totalLinhas <<- length(textoArquivo)
       limiteLinhas <- 0
       if(!is.na(input$arquivoLinhas) && input$arquivoLinhas > 0)
         limiteLinhas <- input$arquivoLinhas
@@ -25,7 +25,10 @@ function(input, output, session) {
   
       # Se houver limite de linhas, obtém apenas a quantidade de linhas limitada
       if(limiteLinhas > 0)
+      {
         textoLimitado <- textoArquivo[-((limiteLinhas+1):totalLinhas)]
+        totalLinhas <<- limiteLinhas
+      }
   
       textoCompleto = ""
   
@@ -292,20 +295,24 @@ function(input, output, session) {
       )
 
     # Remove os outliers
-    dataFrameSentPalavras %<>% filter(between(comment_sentiment_op, -10, 10))
-    dataFrameSentPalavras %<>% filter(between(comment_sentiment_lex, -10, 10))
-
+    dataFrameSentPalavras %<>% filter(between(comment_sentiment_op, -5, 5))
+    dataFrameSentPalavras %<>% filter(between(comment_sentiment_lex, -5, 5))
+    
     output$sentimentos <- renderPlot(dataFrameSentPalavras %>%
       ggplot(aes(x = comment_sentiment_op, y = comment_sentiment_lex)) +
-      geom_point(aes(color = n_words), shape = 18, size = 6) +
-      scale_color_continuous(low = "green", high = "red") +
-      labs(x = "Polaridade no OpLexicon", y = "Polaridade no SentiLex") +
-      geom_vline(xintercept = 0, linetype = "dashed") +
-      geom_hline(yintercept = 0, linetype = "dashed") +
+      geom_point() +
+      geom_count() +
+      geom_rect(aes(xmin = 0, xmax = 5.5, ymin = 0, ymax = 5.5), colour='green', alpha = 0.002) +
+      geom_rect(aes(xmin = -5.5, xmax = 0, ymin = -5.5, ymax = 0), colour='red', alpha = 0.002) +
+      scale_size_area() +
+      #scale_color_continuous(low = "black", high = "red") +
+      labs(x = "SentiLex", y = "OpLexicon") +
+      #geom_vline(xintercept = 0, linetype = "dashed", color="grey") +
+      #geom_hline(yintercept = 0, linetype = "dashed", color="grey") +
       scale_x_continuous(breaks = seq(-10, 10, by = 1)) +
       scale_y_continuous(breaks = seq(-10, 10, by = 1)) +
       ggtitle("Análise de sentimento") +
-      labs(color="Palavras") +
+      labs(size="Quantidade") +
       theme(
         plot.title = element_text(size=14, face="bold", hjust=0.5),
         axis.text.x = element_text(size=11),
@@ -375,49 +382,68 @@ function(input, output, session) {
   observeEvent(input$ajudaArquivo, {
     shinyalert(
       title = "Arquivo",
-      text = "Neste menu, o arquivo a ser carregado é selecionado, sendo que o mesmo deve estar no formato TXT. É possível limitar o número de linhas (registros) a serem carregados. Após a carga, são exibidas as informações de nome, quantidade de linhas e caracteres, bem como a íntegra do mesmo.",
+      text = "Neste menu, o arquivo a ser carregado é selecionado, sendo que o mesmo deve estar no formato TXT.
+      É possível limitar o número de linhas (registros) a serem carregados.
+      Após a carga, são exibidas as informações de nome, quantidade de linhas e caracteres, bem como a íntegra do mesmo.",
       type = "info")
   })
   
   observeEvent(input$ajudaPalavras, {
     shinyalert(
       title = "Lista de palavras",
-      text = "Neste menu, é exibida uma tabela com todas as palavras que estão presentes no texto - excluídas as stopwords e caracteres especiais. É possível ordená-la pela ordem alfabética ou de frequência (quantidade de aparições). A tabela pode ser filtrada não só pesquisando um termo, como também pela barra de frequência mínima.",
+      text = "Neste menu, é exibida uma tabela com todas as palavras que estão presentes no texto - excluídas as stopwords e caracteres especiais.
+      É possível ordená-la pela ordem alfabética ou de frequência (quantidade de aparições).
+      A tabela pode ser filtrada não só pesquisando um termo, como também pela barra de frequência mínima.",
       type = "info")
   })
   
   observeEvent(input$ajudaNuvem, {
     shinyalert(
       title = "Nuvem de palavras",
-      text = "Neste menu, é exibida uma nuvem de palavras, sendo que o tamanho destas varia conforme a frequência de aparição no texto. Ao passar o mouse em cima de uma, é exibida essa frequência. É possível alterar o nível da frequência, em um fator que varia de 0.5 a 10. Quanto maior o valor, menos palavras aparecerão e menor será a frequência máxima de aparição.",
+      text = "Neste menu, é exibida uma nuvem de palavras, sendo que o tamanho destas varia conforme a frequência de aparição no texto.
+      Ao passar o mouse em cima de uma, é exibida essa frequência.
+      É possível alterar o nível da frequência, em um fator que varia de 0.5 a 10. Quanto maior o valor, menos palavras aparecerão e menor será a frequência máxima de aparição.",
       type = "info")
   })
   
   observeEvent(input$ajudaGrafo, {
     shinyalert(
       title = "Grafo de palavras",
-      text = "Neste menu, é exibido um grafo de palavras, apresentando a relação entre elas, e quão forte ela é. Nas barras laterais, é possível alterar a quantidade de palavras exibida no grafo - de 10 a 100 palavras mais frequentes. Também é possível ajustar a correlação, sendo que quanto maior o valor, mais forte deve ser a correlação entre as palavras pra que seja exibido um grafo. Também é ajustado o tamanho da imagem exibida na tela, bem como se as linhas que ligam as palavras ficam mais finas ou espessas conforme o grau de correlação.",
+      text = "Neste menu, é exibido um grafo de palavras, apresentando a relação entre elas, e quão forte ela é.
+      Nas barras laterais, é possível alterar a quantidade de palavras exibida no grafo - de 10 a 100 palavras mais frequentes.
+      Também é possível ajustar a correlação, sendo que quanto maior o valor, mais forte deve ser a correlação entre as palavras pra que seja exibido um grafo.
+      Também é ajustado o tamanho da imagem exibida na tela, bem como se as linhas que ligam as palavras ficam mais finas ou espessas conforme o grau de correlação.",
       type = "info")
   })
   
   observeEvent(input$ajudaFrequencias, {
     shinyalert(
       title = "Frequências",
-      text = "Neste menu, é exibido um histograma que apresenta quais são as palavras mais frequentes no texto enviado. É possivel exibir entre 5 e 30 palavras, desde que atendam à frequência de ocorrência mínima escolhida na barra à esquerda. Quanto mais claro o tom de azul, maior é seu grau de ocorrência.",
+      text = "Neste menu, é exibido um histograma que apresenta quais são as palavras mais frequentes no texto enviado.
+      É possivel exibir entre 5 e 30 palavras, desde que atendam à frequência de ocorrência mínima escolhida na barra à esquerda.
+      Quanto mais claro o tom de azul, maior é seu grau de ocorrência.",
       type = "info")
   })
   
   observeEvent(input$ajudaCorrelacoes, {
     shinyalert(
       title = "Correlações",
-      text = "Neste menu, é exibido um histograma que apresenta quais são as palavras que tem maior correlação com a palavra selecionada à direita. É possivel exibir entre 5 e 30 palavras, desde que atendam à correlação mínima escolhida na barra à esquerda - quanto maior este valor, mais forte deve ser a ligação entre as duas palavras para aparecer no gráfico. Quanto mais claro o tom de azul, maior é sua relação com a palavra selecionada.",
+      text = "Neste menu, é exibido um histograma que apresenta quais são as palavras que tem maior correlação com a palavra selecionada à direita.
+      É possivel exibir entre 5 e 30 palavras, desde que atendam à correlação mínima escolhida na barra à esquerda - quanto maior este valor, mais forte deve ser a ligação entre as duas palavras para aparecer no gráfico.
+      Quanto mais claro o tom de azul, maior é sua relação com a palavra selecionada.",
       type = "info")
   })
   
   observeEvent(input$ajudaSentimentos, {
     shinyalert(
       title = "Análise de sentimentos",
-      text = "Neste menu, é exibida uma análise dos sentimentos capturados a partir do texto enviado. Para isto, faz-se uso de dois dicionários léxicos - o SentiLex e o OpLexicon. Quanto mais a direita os pontos estão, mais positivo ele é para o SentiLex, e quanto mais para cima os pontos estão, mais positivo ele é para o OpLexicon - lembrando que não são exibidos pontos para todas as linhas, mas é feita apenas uma análise geral. Além disto, à esquerda são exibidas as frases consideradas como mais positiva e mais negativa.",
+      text = "Neste menu, é exibida uma análise dos sentimentos capturados a partir do texto enviado. Para isto, faz-se uso de dois dicionários léxicos - o SentiLex e o OpLexicon. 
+1) Os pontos que estão dentro do retângulo com borda verde representam as frases ou parágrafos que foram considerados como positivos pelos dois dicionários.
+2) Os pontos que estão dentro do retângulo com borda vermelha representam as frases ou parágrafos que foram considerados como negativos pelos dois dicionários.
+3) Os demais pontos representam as frases ou parágrafos que foram considerados como positivos por um, mas negativos pelo outro. 
+4) Quanto maior o tamanho do ponto, mais frases ou parágrafos ele representa. 
+5) Quanto mais à direita um ponto está, mais pontos ele recebeu como positivo pelo OpLexicon, e quanto mais à esquerda, mais pontos recebeu como negativo.
+6) Quanto mais acima um ponto está, mais pontos ele recebeu como positivo pelo SentiLex, e quanto mais à direita, mais pontos recebeu como negativo.",
       type = "info")
   })
   
