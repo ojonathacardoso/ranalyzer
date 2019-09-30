@@ -70,8 +70,8 @@ prepararDados <- function(textLoaded) {
   # Cria um dataframe
   dataFrame <<- data.frame(word = names(v),freq=v)
   
-  op30 <- oplexicon_v3.0
-  sent <- sentiLex_lem_PT02
+  op30 <<- oplexicon_v3.0
+  sent <<- sentiLex_lem_PT02
 
   m <<- as.matrix(dtm)
 
