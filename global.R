@@ -9,14 +9,14 @@ library(wordcloud2)
 
 library(tm)
 library(stringr)
+library(quanteda)
 library(DT)
 library(lexiconPT)
 library(tidyverse)
 library(tidytext)
 library(magrittr)
 
-library(Rgraphviz)
-library(BiocGenerics)
+library(visNetwork)
 
 #############
 # Preparação do texto carregado
@@ -26,7 +26,7 @@ prepararDados <- function(textLoaded) {
   
   # Carrega texto
   textLoaded <- iconv(textLoaded, from='UTF-8', to='ASCII//TRANSLIT')
-
+  
   # Transforma em Corpus
   docs <- Corpus(VectorSource(textLoaded))
 

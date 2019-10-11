@@ -1,3 +1,5 @@
+library(reshape2)
+
 shinyServer(
 
 function(input, output, session) {
@@ -273,102 +275,471 @@ function(input, output, session) {
     
     data("oplexicon_v3.0")
     data("sentiLex_lem_PT02")
-
-    dataFrameSent <- data.frame(text = textPrepared)
-    dataFrameSent %<>% mutate(linha_id = row_number(), text = textPrepared)
-    dataFrameSentPalavras <- dataFrameSent %>% unnest_tokens(term, text)
-
-    dataFrameSentPalavras <- dataFrameSentPalavras %>%
-      inner_join(op30, by = "term") %>%
-      inner_join(sent %>% select(term, lex_polarity = polarity), by = "term") %>%
-      group_by(linha_id) %>%
-      summarise(
-        comment_sentiment_op = sum(polarity),
-        comment_sentiment_lex = sum(lex_polarity),
-        n_words = n()
-      ) %>%
-      ungroup() %>%
-      rowwise() %>%
-      mutate(
-        most_neg = min(comment_sentiment_lex, comment_sentiment_op),
-        most_pos = max(comment_sentiment_lex, comment_sentiment_op)
-      )
-
-    # Remove os outliers
-    dataFrameSentPalavras %<>% filter(between(comment_sentiment_op, -5, 5))
-    dataFrameSentPalavras %<>% filter(between(comment_sentiment_lex, -5, 5))
     
-    output$sentimentos <- renderPlot(dataFrameSentPalavras %>%
-      ggplot(aes(x = comment_sentiment_op, y = comment_sentiment_lex)) +
-      geom_point() +
-      geom_count() +
-      geom_rect(aes(xmin = 0, xmax = 5.5, ymin = 0, ymax = 5.5), colour='green', alpha = 0.002) +
-      geom_rect(aes(xmin = -5.5, xmax = 0, ymin = -5.5, ymax = 0), colour='red', alpha = 0.002) +
-      scale_size_area() +
-      #scale_color_continuous(low = "black", high = "red") +
-      labs(x = "SentiLex", y = "OpLexicon") +
-      #geom_vline(xintercept = 0, linetype = "dashed", color="grey") +
-      #geom_hline(yintercept = 0, linetype = "dashed", color="grey") +
-      scale_x_continuous(breaks = seq(-10, 10, by = 1)) +
-      scale_y_continuous(breaks = seq(-10, 10, by = 1)) +
-      ggtitle("Análise de sentimento") +
-      labs(size="Quantidade") +
-      theme(
-        plot.title = element_text(size=14, face="bold", hjust=0.5),
-        axis.text.x = element_text(size=11),
-        axis.text.y = element_text(size=11),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank()
-      ) +
-      coord_flip()
-    )
-
-    most_pos <- which.max(dataFrameSentPalavras$most_pos)
-    most_neg <- which.min(dataFrameSentPalavras$most_neg)
-    
-    output$sentimentosFrases <- renderText({
-      paste(
-        "<b>Mais positiva: </b><br>",
-        dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentPalavras$linha_id[most_pos]],
-        "<br><br><br>",
-        "<b>Mais negativa: </b><br>",
-        dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentPalavras$linha_id[most_neg]],
-        "<br><br>"
-      )
+    observeEvent(
+    {
+      input$sentimentosPorFrase
+      input$precisaoSentimentosOpLexicon
+      input$precisaoSentimentosSentiLex
+    },
+    {
+      withProgress({
+        setProgress(message = "Gerando gráfico...")
+      
+        textAnalyzed <- textPrepared
+        
+        if(input$sentimentosPorFrase == TRUE)
+        {
+          textSentenced <- paste(textAnalyzed,collapse=" ")
+          sentences <- tokens(textSentenced,"sentence")
+          textAnalyzed <- sentences[[1]]
+        }
+        
+        dataFrameSent <- data.frame(text = textAnalyzed)
+        dataFrameSent %<>% mutate(linha_id = row_number(), text = textAnalyzed)
+        dataFrameSentPalavras <- dataFrameSent %>% unnest_tokens(term, text)
+        
+        #
+        # Ambos os dicionários
+        #
+        
+        dataFrameSentAmbos <- dataFrameSentPalavras %>%
+          inner_join(op30, by = "term") %>%
+          inner_join(sent %>% select(term, lex_polarity = polarity), by = "term") %>%
+          group_by(linha_id) %>%
+          summarise(
+            comment_sentiment_op = sum(polarity),
+            comment_sentiment_lex = sum(lex_polarity),
+            n_words = n()
+          ) %>%
+          ungroup() %>%
+          rowwise() %>%
+          mutate(
+            most_neg = min(comment_sentiment_op, comment_sentiment_lex),
+            most_pos = max(comment_sentiment_op, comment_sentiment_lex)
+          )
+          
+          # Remove os outliers
+          dataFrameSentAmbos %<>% filter(between(comment_sentiment_op, -10, 10))
+          dataFrameSentAmbos %<>% filter(between(comment_sentiment_lex, -10, 10))
+          
+          output$sentimentosAmbos <- renderPlot(dataFrameSentAmbos %>%
+            ggplot(aes(x = comment_sentiment_op, y = comment_sentiment_lex)) +
+            scale_color_continuous(low = "red", high = "blue") +
+            #geom_point() +
+            geom_count() +
+            geom_rect(aes(xmin = 0, xmax = 5.5, ymin = 0, ymax = 5.5), colour='blue', alpha = 0.002) +
+            geom_rect(aes(xmin = -5.5, xmax = 0, ymin = -5.5, ymax = 0), colour='red', alpha = 0.002) +
+            scale_size_area() +
+            labs(x = "SentiLex", y = "OpLexicon") +
+            scale_x_continuous(breaks = seq(-10, 10, by = 1)) +
+            scale_y_continuous(breaks = seq(-10, 10, by = 1)) +
+            ggtitle("Análise geral com ambos os dicionários") +
+            labs(size="Quantidade") +
+            theme(
+              plot.title = element_text(size=14, face="bold", hjust=0.5),
+              axis.text.x = element_text(size=11),
+              axis.text.y = element_text(size=11),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank()
+            ) +
+            coord_flip()
+          )
+          
+          output$sentimentosTextosAmbos <- renderText({
+            paste(
+              "<b>Total de registros: </b>", length(textAnalyzed), "<br>",
+              "<b>Total analisado: </b>", nrow(dataFrameSentAmbos), "<br><br>"
+            )
+          })
+          
+          #
+          # OpLexicon
+          #
+          
+          dataFrameSentOp <- dataFrameSentPalavras %>%
+            inner_join(op30, by = "term") %>%
+            group_by(linha_id) %>%
+            summarise(
+              comment_sentiment_op = sum(polarity),
+              n_words = n()
+            ) %>%
+            ungroup() %>%
+            rowwise() %>%
+            mutate(
+              most_neg = min(comment_sentiment_op),
+              most_pos = max(comment_sentiment_op)
+            ) 
+          
+          # Remove os outliers
+          dataFrameSentOp %<>% filter(between(comment_sentiment_op, -10, 10))
+          
+          mid <- mean(dataFrameSentOp$comment_sentiment_op)
+          
+          output$sentimentosOpLexicon <- renderPlot(
+            ggplot(dataFrameSentOp,
+                   aes(x=linha_id,
+                       y=comment_sentiment_op)
+            ) +
+              geom_bar(stat = "identity", aes(fill=comment_sentiment_op)) +
+              #scale_color_gradient(low = "red", high = "blue") +
+              scale_fill_gradient2(midpoint = mid,
+                                   low = "red",
+                                   mid = "grey",
+                                   high = "blue",
+                                   guide = "colourbar",
+                                   guide_legend(title="Pontos"),
+                                   limits = c(-10, 10),
+                                   breaks = seq(-10, 10, 4)#,
+                                   #guides(fill=guide_legend(title="Pontos"))
+              )+
+              geom_rect(aes(xmin = 0, xmax = 0, ymin = -10, ymax = 10)) +     # Truque pra exibir de -10 a 10
+              scale_y_continuous(breaks = seq(from = -10, to = 10, by = 1)) +
+              scale_x_continuous(breaks = seq(0,length(textAnalyzed), 2*input$precisaoSentimentosOpLexicon)) +
+              ggtitle(paste("Análise por linha com o OpLexicon")) +
+              labs(y = "Pontuação", x = "Linha") +
+              theme(
+                plot.title = element_text(size=14, face="bold", hjust=0.5),
+                axis.text.x = element_text(size=11),
+                axis.text.y = element_text(size=11),
+                panel.grid.major = element_blank()
+              ) +
+              coord_flip()
+          )
+          
+          most_pos <- which.max(dataFrameSentOp$most_pos)
+          most_neg <- which.min(dataFrameSentOp$most_neg)
+          
+          output$sentimentosTextosOpLexicon <- renderText({
+            paste(
+              "<b>Total de registros: </b>", length(textAnalyzed), "<br>",
+              "<b>Total analisado: </b>", nrow(dataFrameSentOp), "<br><br>",
+              "<b>Mais positivo(a): </b><br><i>",
+              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentOp$linha_id[most_pos]],
+              "</i><br><b>Pontos:</b> ", dataFrameSentOp$most_pos[most_pos],
+              "<br><br>",
+              "<b>Mais negativo(a): </b><br><i>",
+              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentOp$linha_id[most_neg]],
+              "</i><br><b>Pontos:</b> ", dataFrameSentOp$most_neg[most_neg],
+              "<br><br>"
+            )
+          })
+          
+          #
+          # SentiLex
+          #
+          
+          dataFrameSentLex <- dataFrameSentPalavras %>%
+            inner_join(sent %>% select(term, lex_polarity = polarity), by = "term") %>%
+            group_by(linha_id) %>%
+            summarise(
+              comment_sentiment_lex = sum(lex_polarity),
+              n_words = n()
+            ) %>%
+            ungroup() %>%
+            rowwise() %>%
+            mutate(
+              most_neg = min(comment_sentiment_lex),
+              most_pos = max(comment_sentiment_lex)
+            ) 
+          
+          # Remove os outliers
+          dataFrameSentLex %<>% filter(between(comment_sentiment_lex, -10, 10))
+          
+          mid <- mean(dataFrameSentLex$comment_sentiment_lex)
+          
+          output$sentimentosSentiLex <- renderPlot(
+            ggplot(dataFrameSentLex,
+                   aes(x=linha_id,
+                       y=comment_sentiment_lex)
+            ) +
+              geom_bar(stat = "identity", aes(fill=comment_sentiment_lex)) +
+              #scale_color_gradient(low = "red", high = "blue") +
+              scale_fill_gradient2(midpoint = mid,
+                                   low = "red",
+                                   mid = "grey",
+                                   high = "blue",
+                                   guide = "colourbar",
+                                   guide_legend(title="Pontos"),
+                                   limits = c(-10, 10),
+                                   breaks = seq(-10, 10, 4)#,
+                                   #guides(fill=guide_legend(title="Pontos"))
+              )+
+              geom_rect(aes(xmin = 0, xmax = 0, ymin = -10, ymax = 10)) +     # Truque pra exibir de -10 a 10
+              scale_y_continuous(breaks = seq(from = -10, to = 10, by = 1)) +
+              scale_x_continuous(breaks = seq(0,length(textAnalyzed), 2*input$precisaoSentimentosSentiLex)) +
+              ggtitle(paste("Análise por linha com o SentiLex")) +
+              labs(y = "Pontuação", x = "Linha") +
+              theme(
+                plot.title = element_text(size=14, face="bold", hjust=0.5),
+                axis.text.x = element_text(size=11),
+                axis.text.y = element_text(size=11),
+                panel.grid.major = element_blank()
+              ) +
+              coord_flip()
+          )
+          
+          most_pos <- which.max(dataFrameSentLex$most_pos)
+          most_neg <- which.min(dataFrameSentLex$most_neg)
+          
+          output$sentimentosTextosSentiLex <- renderText({
+            paste(
+              "<b>Total de registros: </b>", length(textAnalyzed), "<br>",
+              "<b>Total analisado: </b>", nrow(dataFrameSentLex), "<br><br>",
+              "<b>Mais positivo(a): </b><br><i>",
+              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentLex$linha_id[most_pos]],
+              "</i><br><b>Pontos:</b> ", dataFrameSentLex$most_pos[most_pos],
+              "<br><br>",
+              "<b>Mais negativo(a): </b><br><i>",
+              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentLex$linha_id[most_neg]],
+              "</i><br><b>Pontos:</b> ", dataFrameSentLex$most_neg[most_neg],
+              "<br><br>"
+            )
+          })
+          
+        })
     })
     
+    observeEvent(
+    {
+      input$grafosCorrSlider
+      input$grafosQtdeSlider
+    },
+    {
+      withProgress({
+        setProgress(message = "Gerando grafo...")
+        
+          #
+          # DataFame de palavras
+          #
+      
+          palavrasFrequentes <- data.frame(words=head(dataFrame, input$grafosQtdeSlider)$word,
+                                           freqs=head(dataFrame, input$grafosQtdeSlider)$freq)
+          
+          maiorFreq <- head(dataFrame, 1)$freq
+          
+          # Pego as palavras e crio um array delas.
+          palavrasLista <- strsplit(toString(palavrasFrequentes$words), ", ")    
+          
+          palavras <- data.frame(id=1:length(palavrasLista[[1]]),
+                                 palavra_base=palavrasLista,
+                                 frequencia=head(dataFrame, input$grafosQtdeSlider)$freq)
+          
+          names(palavras)[2] <- "palavra_base"
+          names(palavras)[3] <- "frequencia"
+          
+          palavras$label <- palavras$palavra_base
+          palavras$title <- paste0(palavras$frequencia, " ocorrências")
+          
+          palavras$shadow <- TRUE
+          palavras$fixed <- TRUE
+          palavras$labelHighlightBold <- TRUE
+          palavras$font <- "40px arial #FF4500"
+          palavras$borderWidth <- 1
+          
+          cores <- c("#8B0000",
+                     "#B22222",
+                     "#A52A2A",
+                     "#FF0000",
+                     "#FF6347",
+                     "#FF7F50",
+                     "#FFA07A",
+                     "#E9967A",
+                     "#FA8072")
+          
+          palavras$color <- cores[ceiling(palavras$id/10)]
+          
+          # Cálculos para posicionar as palavras em uma grade de 5 colunas por X linhas
+          xyPosition = palavras$id/5
+          palavras$y <- (ceiling(xyPosition)) * 350
+          palavras$x <- (palavras$id - ((floor(xyPosition))*5)) * 350
+          
+          # Tamanho proporcional à frequência.
+          # Tamanho 50 indica palavra mais frequente.
+          palavras$size <- 10 + ((palavras$frequencia/maiorFreq) * 50)
+          
+          #
+          # DataFame de correlações
+          #
+          
+          base <- c(-1)
+          correlacionadas <- c(-1)
+          #palavrasCorrelacao <- c("correlacao")
+          
+          for(iBase in 1:length(palavrasLista[[1]]))
+          {
+            associacoes <- data.frame(word=(findAssocs(dtm,
+                                                       palavrasLista[[1]][iBase],
+                                                       corlimit=input$grafosCorrSlider/100)[1]))
+            names(associacoes)[1] <- "palavra_base"
+            
+            #print(palavras$id[i])
+            #print(palavrasLista[[1]][i])
+            
+            for(iAssoc in 1:nrow(associacoes))
+            {
+              iCorr <- which(palavras$palavra_base==rownames(associacoes)[iAssoc])
+              
+              if(! identical(iCorr, integer(0)))
+              {
+                #print(index)
+                #print(palavrasLista[[1]][index])
+                #print(iLista)
+                #print(palavrasLista[[1]][iLista])
+                
+                # Testa apenas as correlações que não foram anteriormente adicionadas.
+                if(iCorr > iBase)
+                {
+                  base <- c(base, iBase)
+                  correlacionadas <- c(correlacionadas, iCorr)
+                }
+                
+                
+                #palavrasCorrelacao <- c(palavrasCorrelacao, associacoes[1]$palavra_base)
+                
+              }
+              
+              #print(rownames(associacoes)[i])
+              #print(associacoes[1, ])
+              #print("-------------")
+            }
+
+            #palavrasBase <- replicate(length(row.names(associacoes)), palavra)
+            #palavrasCorrelacionadas <- row.names(associacoes)
+            #palavrasCorrelacao <- associacoes[1]$palavra_base
+            
+            #palavrasBase <- c(palavrasBase, replicate(length(row.names(associacoes)), palavra))
+            #palavrasCorrelacionadas <- c(palavrasCorrelacionadas, row.names(associacoes))
+            #palavrasCorrelacao <- c(palavrasCorrelacao, associacoes[1]$palavra_base)
+          }
+      
+          correlacoes <- data.frame(from=base, 
+                                      to=correlacionadas)
+          
+          correlacoes$arrows <- "to"
+          correlacoes$width <- 1
+          correlacoes$selectionWidth <- 10
+
+          #print(base)
+          #print(correlacionadas)
+          
+          #print(palavras)
+          #print(correlacoes)
+          
+          output$grafo <- renderVisNetwork({
+          
+              grafo <- visNetwork(palavras,
+                                   correlacoes, 
+                                   width = "100%",
+                                   margin=c(0, 0, 0, 0)) %>%
+                 visInteraction(dragNodes = TRUE, navigationButtons = TRUE) %>%
+                 visEdges(color = list(highlight = "#8B0000", hover = "#A52A2A")) %>% 
+                 visOptions(highlightNearest = list(enabled = TRUE, degree = 1,
+                                                    labelOnly = FALSE, hover = TRUE),) 
+          })
+      })
+    })
+
     output$downloadGrafo <- downloadHandler(
       
-      filename = function() {
-        paste("grafo", "png", sep=".")
-      },
       
-      # content is a function with argument file. content writes the plot to the device
-      content = function(file) {
-        
-        correlacao = input$grafosCorrSlider
-        
-        # O tamanho da imagem a ser exibida é influenciado pela correlação
-        # Não fazer isto, possibilita gerar imagens com os grafos sobrepostos entre si.
-        tamanhoReal = 5000
-
-        png(file, width=tamanhoReal, height=tamanhoReal)
-
-        # A frequência mínima usada no findFreqTerms baseia-se na quantidade
-        # de palavras mais frequentes escolhida pelo usuário
-        freqMinima <- head(dataFrame, input$grafosQtdeSlider)[input$grafosQtdeSlider,2]
-
-        plot(dtm,
-             term = findFreqTerms(dtm, lowfreq=freqMinima),
-             corThreshold = correlacao,
-             weighting = input$grafosPesoLinhas,
-             attrs=list(node=list(width=5,fontsize=15,fontcolor="blue",color="red"))
-        )
-        
-        dev.off()
-      } 
     )
     
+  }
+  
+  output$sobre <- renderText({
+    paste(
+      "<b>Desenvolvido por:</b>", "<br>",
+      "Jonatha Martins Cardoso <ojonathacardoso@gmail.com>",
+      "<br>","<br>",
+      "<b>Código-fonte e instruções de instalação:</b>","<br>",
+      "<a href='https://github.com/ojonathacardoso/ranalyzer'>https://github.com/ojonathacardoso/ranalyzer</a>",
+      "<br>","<br>",
+      "<b>Referência para citação bibliográfica:</b>","<br>",
+      "CARDOSO, Jonatha Martins. <b>Mineração de texto em fontes da Internet, com enfoque na Administração Pública e Atividade Política.</b> 2019. Trabalho de Conclusão de Curso (Monografia) – Curso de Sistemas de Informação, Universidade Feevale, Novo Hamburgo, RS, 2019."
+    )
+  })
+
+  cores<- c("#cbb3fd","#fdb3b6", "#b3f4fd", "#e5fdb3", "#fdb3f9", 
+            "#f8fdb3", "#fde1b3", "#b11a48", "#4964fc", "#1ab185")
+  
+  # Recebe os dois data frames de entrada e gera o grafo (visNetwork) das disciplinas 
+  # e seus pré-requisitos
+  # data frame disciplinas: matriz curricular com informações de código, nome, sigla, 
+  # semestre, sequência no semestre e observações
+  # data frame prerequisitos: informações com pré-requisitos entre as 
+  # disciplinas - origem -> destino
+  # O parâmetro tipo serve para indicar se F: grafo fixo; ou M: grafo móvel
+  curriculo.interativo<-function() {
+    
+    tipo = "M"
+    
+    df.disciplinas <- read.csv2('cico.csv', header=TRUE, sep=";",
+                                quote="", encoding="UTF-8")
+    df.prerequisitos <- read.csv2('cico_prerequisitos.csv', header=TRUE, sep=";",
+                                  quote="", encoding="UTF-8")
+    
+    # colocando as informações do data frame de disciplinas na variável disciplinas
+    disciplinas <- data.frame(id=df.disciplinas[,"codigo"],
+                              nome=df.disciplinas[,"nome"],
+                              sigla=df.disciplinas[,"sigla"],
+                              semestre=df.disciplinas[,"semestre"],
+                              num=df.disciplinas[,"num"],
+                              obs=df.disciplinas[,"obs"])
+    
+    # Descobrindo o número de semestres do curso
+    numero.semestres <- max(df.disciplinas[,"semestre"])
+    
+    # Colocando as informações do data frame de pré-requisitos na variável prerequisitos
+    prerequisitos <- data.frame(from=df.prerequisitos[,"from"], 
+                                to=df.prerequisitos[,"to"])
+    
+    # Definindo todas as características dos nodos (disciplinas)
+    disciplinas$shape <- "square"
+    disciplinas$shadow <- TRUE
+    # Texto que aparece quando o mouse é colocado sobre o nodo
+    disciplinas$title <- paste0("(",disciplinas$id,") ",disciplinas$nome,"<br>",
+                                disciplinas$semestre,"o. semestre","<br>",
+                                disciplinas$obs)
+    # Texto que aparece abaixo do nodo
+    disciplinas$label <- disciplinas$sigla
+    #disciplinas$color <- cores[disciplinas$semestre]
+    disciplinas$labelHighlightBold <- TRUE
+    
+    if (tipo == "F") {
+      disciplinas$fixed <- TRUE
+      disciplinas$x <- disciplinas$num * 350
+      disciplinas$y <- disciplinas$semestre * 250
+      disciplinas$font <- "32px arial black"
+      disciplinas$size <- 40
+      disciplinas$borderWidth <- 3
+    }
+    else if (tipo == "M") {
+      disciplinas$font <- "18px arial black"
+      disciplinas$size <- 20
+      disciplinas$borderWidth <- 3
+    }
+    
+    # Configurando arestas: pré-requisitos
+    prerequisitos$arrows <- "to"
+    prerequisitos$width <- 4
+    prerequisitos$selectionWidth <- 10
+
+    
+    #dtm,
+    #term = findFreqTerms(dtm, lowfreq=freqMinima),
+    #corThreshold = correlacao
+    
+    
+    
+    # Gera um grafo de disciplinas como nodos e pré-requisitos como arestas
+    grafo <- visNetwork(dtm, correlacao, 
+                        margin=c(0, 0, 0, 0)) %>%
+      #visInteraction(dragNodes = FALSE) %>%
+      #visLayout(hierarchical = TRUE) %>%
+      visOptions(highlightNearest = TRUE)
+    
+    return (grafo)
   }
   
   output$arquivo <- eventReactive(input$arquivo, 
@@ -434,16 +805,28 @@ function(input, output, session) {
       type = "info")
   })
   
-  observeEvent(input$ajudaSentimentos, {
+  observeEvent(input$ajudaSentimentosAmbos, {
     shinyalert(
       title = "Análise de sentimentos",
       text = "Neste menu, é exibida uma análise dos sentimentos capturados a partir do texto enviado. Para isto, faz-se uso de dois dicionários léxicos - o SentiLex e o OpLexicon. 
-1) Os pontos que estão dentro do retângulo com borda verde representam as frases ou parágrafos que foram considerados como positivos pelos dois dicionários.
-2) Os pontos que estão dentro do retângulo com borda vermelha representam as frases ou parágrafos que foram considerados como negativos pelos dois dicionários.
-3) Os demais pontos representam as frases ou parágrafos que foram considerados como positivos por um, mas negativos pelo outro. 
-4) Quanto maior o tamanho do ponto, mais frases ou parágrafos ele representa. 
-5) Quanto mais à direita um ponto está, mais pontos ele recebeu como positivo pelo OpLexicon, e quanto mais à esquerda, mais pontos recebeu como negativo.
-6) Quanto mais acima um ponto está, mais pontos ele recebeu como positivo pelo SentiLex, e quanto mais à direita, mais pontos recebeu como negativo.",
+      Nesta tela, é exibido um gráfico de dispersão.
+      Os pontos que estão dentro do retângulo com borda verde representam as frases ou parágrafos que foram considerados como positivos pelos dois dicionários.
+      Os pontos que estão dentro do retângulo com borda vermelha representam as frases ou parágrafos que foram considerados como negativos pelos dois dicionários.
+      Quanto maior o tamanho do ponto, mais frases ou parágrafos ele representa.
+      Quanto mais à direita um ponto está, mais pontos ele recebeu como positivo pelo OpLexicon, e quanto mais à esquerda, mais pontos recebeu como negativo.
+      Quanto mais acima um ponto está, mais pontos ele recebeu como positivo pelo SentiLex, e quanto mais à direita, mais pontos recebeu como negativo.",
+      type = "info")
+  })
+  
+  observeEvent(input$ajudaSentimentosOpLexicon, {
+    shinyalert(
+      title = "Análise de sentimentos",
+      text = "Neste menu, é exibida uma análise dos sentimentos capturados a partir do texto enviado.
+      Para isto, faz-se uso de dois dicionários léxicos - o SentiLex e o OpLexicon. Cada um é exibido numa tela.
+      Ao clicar em 'OpLexicon' ou 'SentiLex', você pode ver a análise de sentimento para cada frase/parágrafo (conforme a opção escolhida na tela 'Ambos').
+      É possível ajustar a marcação das linhas exibidas no gráfico conforme é movida a barra 'Detalhamento das linhas'.
+      Abaixo dessa opção, aparece a frase/parágrafo mais positiva e a mais negativa - ambos acompanhados da sua pontuação.
+      Nas três telas, você pode ver quantas frases/parágrafos o texto possui e quantos foram analisados.",
       type = "info")
   })
   

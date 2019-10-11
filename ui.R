@@ -135,36 +135,17 @@ fluidPage(
                                helpText("Selecione a correlação mínima entre estas palavras."),
                                sliderInput("grafosCorrSlider",
                                            "Correlação",
-                                           min = 0.20,
-                                           max = 0.30,
-                                           value = 0.25,
-                                           step = 0.01
-                               ),
-                               helpText("Ajuste o tamanho da imagem que será exibida ao lado."),
-                               sliderInput("grafosTamanhoSlider",
-                                           "Tamanho",
-                                           min = 10,
+                                           min = 5,
                                            max = 100,
                                            value = 50,
-                                           step = 5
-                               ),
-                               radioButtons("grafosPesoLinhas",
-                                            "Exibir linhas com peso",
-                                            choiceNames = list("Sim","Não"),
-                                            choiceValues = list(T, F)
+                                           step = 1
                                )
                             ),
                             column(9,
                               br(),
                               actionButton("ajudaGrafo", "Leia mais"),
-                              downloadButton("downloadGrafo", "Baixar a imagem"),
-                              br(),br(),
-                              style = "overflow-y:scroll; max-height: 700px",
-                              br(),
-                              imageOutput("grafos",
-                                         height = "500px",
-                                         width = "100%"
-                              )
+                              visNetworkOutput('grafo', width = "100%", height = "500px"),
+                              br()
                             )
                           )
                   ),
@@ -264,24 +245,90 @@ fluidPage(
                   #######
 
                   tabPanel("Análise de sentimentos",
+                           br(),
+                           tabsetPanel(id = "tabsetSentimentos",
+                                       type = "pills",
+                                       tabPanel("Ambos",
+                                                fluidRow(
+                                                  column(4,
+                                                         br(),
+                                                         actionButton("ajudaSentimentosAmbos", "Leia mais"),
+                                                         br(),br(),
+                                                         htmlOutput("sentimentosTextosAmbos"),
+                                                         br(),
+                                                         radioButtons("sentimentosPorFrase",
+                                                                      "Analisar por:",
+                                                                      choiceNames = list("Parágrafo","Frase"),
+                                                                      choiceValues = list(F, T)
+                                                         ),
+                                                         helpText("O retângulo verde representa as frases ou parágrafos positivos.
+                                                           O retângulo vermelho representa os negativos.
+                                                           Quanto maior o ponto, mais frases ou parágrafos ele representa.")
+                                                  ),
+                                                  column(8,
+                                                         br(),
+                                                         plotOutput("sentimentosAmbos",
+                                                                    height = "500px",
+                                                                    width = "100%"
+                                                         )
+                                                  )
+                                                )
+                                       ),
+                                       tabPanel("OpLexicon",
+                                         fluidRow(
+                                           column(4,
+                                                  br(),
+                                                  actionButton("ajudaSentimentosOpLexicon", "Leia mais"),
+                                                  br(),br(),
+                                                  sliderInput("precisaoSentimentosOpLexicon",
+                                                              "Detalhamento das linhas",
+                                                              min = 1,
+                                                              max = 25,
+                                                              value = 5,
+                                                              step = 1
+                                                  ),
+                                                  htmlOutput("sentimentosTextosOpLexicon")
+                                           ),
+                                           column(8,
+                                                  br(),
+                                                  plotOutput("sentimentosOpLexicon",
+                                                             height = "1000px",
+                                                             width = "100%"
+                                                  )
+                                           )
+                                         )
+                                       ),
+                                       tabPanel("SentiLex",
+                                          fluidRow(
+                                            column(4,
+                                                   br(),br(),br(),br(),
+                                                   sliderInput("precisaoSentimentosSentiLex",
+                                                               "Detalhamento das linhas",
+                                                               min = 1,
+                                                               max = 25,
+                                                               value = 5,
+                                                               step = 1
+                                                   ),
+                                                   htmlOutput("sentimentosTextosSentiLex")
+                                            ),
+                                            column(8,
+                                                   br(),
+                                                   plotOutput("sentimentosSentiLex",
+                                                              height = "1000px",
+                                                              width = "100%"
+                                                   )
+                                            )
+                                          )
+                                       )
+                           )
+                  ),
+                  tabPanel("Sobre",
                            fluidRow(
-                             column(4,
+                             column(12,
                                     br(),
-                                    actionButton("ajudaSentimentos", "Leia mais"),
-                                    br(),br(),
-                                    helpText("O retângulo verde representa as frases ou parágrafos positivos.
-                                             O retângulo vermelho representa os negativos.
-                                             Quanto maior o ponto, mais frases ou parágrafos ele representa."),
-                                    br(),
-                                    htmlOutput("sentimentosFrases")
-                             ),
-                             column(8,
-                                    br(),
-                                    plotOutput("sentimentos",
-                                               height = "500px",
-                                               width = "100%"
-                                    )
+                                    htmlOutput("sobre")
                              )
+                             
                            )
                   )
                   
