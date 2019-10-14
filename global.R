@@ -4,7 +4,6 @@ library(shinyalert)
 
 library(ggplot2) 
 library(ggExtra)
-library(graph)
 library(wordcloud2)
 
 library(tm)

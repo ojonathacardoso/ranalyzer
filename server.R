@@ -564,8 +564,7 @@ function(input, output, session) {
           
           base <- c(-1)
           correlacionadas <- c(-1)
-          #palavrasCorrelacao <- c("correlacao")
-          
+
           for(iBase in 1:length(palavrasLista[[1]]))
           {
             associacoes <- data.frame(word=(findAssocs(dtm,
@@ -573,44 +572,20 @@ function(input, output, session) {
                                                        corlimit=input$grafosCorrSlider/100)[1]))
             names(associacoes)[1] <- "palavra_base"
             
-            #print(palavras$id[i])
-            #print(palavrasLista[[1]][i])
-            
             for(iAssoc in 1:nrow(associacoes))
             {
               iCorr <- which(palavras$palavra_base==rownames(associacoes)[iAssoc])
               
               if(! identical(iCorr, integer(0)))
               {
-                #print(index)
-                #print(palavrasLista[[1]][index])
-                #print(iLista)
-                #print(palavrasLista[[1]][iLista])
-                
                 # Testa apenas as correlações que não foram anteriormente adicionadas.
                 if(iCorr > iBase)
                 {
                   base <- c(base, iBase)
                   correlacionadas <- c(correlacionadas, iCorr)
                 }
-                
-                
-                #palavrasCorrelacao <- c(palavrasCorrelacao, associacoes[1]$palavra_base)
-                
               }
-              
-              #print(rownames(associacoes)[i])
-              #print(associacoes[1, ])
-              #print("-------------")
             }
-
-            #palavrasBase <- replicate(length(row.names(associacoes)), palavra)
-            #palavrasCorrelacionadas <- row.names(associacoes)
-            #palavrasCorrelacao <- associacoes[1]$palavra_base
-            
-            #palavrasBase <- c(palavrasBase, replicate(length(row.names(associacoes)), palavra))
-            #palavrasCorrelacionadas <- c(palavrasCorrelacionadas, row.names(associacoes))
-            #palavrasCorrelacao <- c(palavrasCorrelacao, associacoes[1]$palavra_base)
           }
       
           correlacoes <- data.frame(from=base, 
@@ -619,12 +594,6 @@ function(input, output, session) {
           correlacoes$arrows <- "to"
           correlacoes$width <- 1
           correlacoes$selectionWidth <- 10
-
-          #print(base)
-          #print(correlacionadas)
-          
-          #print(palavras)
-          #print(correlacoes)
           
           output$grafo <- renderVisNetwork({
           
