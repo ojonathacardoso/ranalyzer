@@ -10,11 +10,20 @@ A ferramenta foi desenvolvida para ser capaz de fornecer informações e conheci
 
 O processo de instalação é bem simples. Em primeiro lugar, você deve baixar um arquivo ZIP, disponível <a href="https://github.com/ojonathacardoso/ranalyzer-adds/archive/master.zip">aqui</a>. Após isto, descompacte-o em qualquer pasta do computador.
 
-Em seguida, basta abrir a pasta "Install" e dar dois cliques no arquivo <b>instalador_ranalyzer.bat</b>. Vai aparecer uma janela preta do Prompt de Comando e 
+Em seguida, basta abrir a pasta "Install" e dar dois cliques no arquivo <b>ranalyzer_install.bat</b>. Vai aparecer uma janela preta do Prompt de Comando e 
 os arquivos da linguagem R e do <i>software</i> começarão a ser baixados, instalados e/ou copiados.
 
 Após concluir o processo, o RAnalyzer estará disponível. Basta abrir o Menu Iniciar, clicar em RAnalyzer. Na janela que abrir, basta dar dois cliques no 
 arquivo <b>ranalyzer.bat</b>, uma nova janela do Prompt vai abrir e, depois de alguns segundos, abrirá uma janela no navegador, com o <i>software</i> pronto pra uso.
+
+<h2> Atualização </h2>
+
+O processo de atualização é o mesmo. Basta baixar o mesmo arquivo ZIP, disponível <a href="https://github.com/ojonathacardoso/ranalyzer-adds/archive/master.zip">aqui</a>. Após isto, descompacte-o em qualquer pasta do computador.
+
+Em seguida, basta abrir a pasta "Install" e dar dois cliques no arquivo <b>ranalyzer_update.bat</b>. Vai aparecer uma janela preta do Prompt de Comando e 
+os arquivos do <i>software</i> começarão a ser baixados, instalados e/ou copiados.
+
+Após concluir o processo, o RAnalyzer estará atualizado.
 
 <h2> Funcionalidades disponíveis </h2>
 
