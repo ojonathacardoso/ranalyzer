@@ -2,10 +2,6 @@ library(shiny)
 library(shinyjs)
 library(shinyalert)
 
-library(ggplot2) 
-library(ggExtra)
-library(wordcloud2)
-
 library(tm)
 library(stringr)
 library(quanteda)
@@ -15,6 +11,9 @@ library(tidyverse)
 library(tidytext)
 library(magrittr)
 
+library(ggplot2) 
+library(ggExtra)
+library(wordcloud2)
 library(visNetwork)
 
 #############

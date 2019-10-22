@@ -43,16 +43,31 @@ fluidPage(
                                              "Número máximo de linhas a serem carregadas:",
                                              value = 0,
                                              min = 0
-                                )
+                                ),
+                                br(),
+                                plotOutput("arquivo") # Serve apenas para identificar a carga de um novo arquivo
+                                #htmlOutput("arquivoInf")
                              ),
                              column(9,
                                 br(),
                                 actionButton("ajudaArquivo", "Leia mais"),
                                 br(),br(),
-                                htmlOutput("arquivoInfo"),
-                                hr(),
-                                uiOutput("arquivoTexto"),
-                                plotOutput("arquivo")
+                                tabsetPanel(id = "tabsetSentimentos",
+                                            type = "pills",
+                                            tabPanel("Informações",
+                                                     br(),
+                                                     htmlOutput("arquivoInf")
+                                                     
+                                            ),
+                                            tabPanel("Parágrafos/Linhas",
+                                                     br(),
+                                                     htmlOutput("arquivoPar")
+                                            ),
+                                            tabPanel("Frases",
+                                                     br(),
+                                                     htmlOutput("arquivoFra")
+                                            )
+                                )
                              )
 
                           )
@@ -283,7 +298,7 @@ fluidPage(
                                                   sliderInput("precisaoSentimentosOpLexicon",
                                                               "Detalhamento das linhas",
                                                               min = 1,
-                                                              max = 25,
+                                                              max = 50,
                                                               value = 5,
                                                               step = 1
                                                   ),

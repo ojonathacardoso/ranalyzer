@@ -11,8 +11,6 @@ function(input, output, session) {
     withProgress({
       setProgress(message = "Carregando arquivo...")
       
-      shinyjs::disable("downloadGrafo")
-      
       runif(input$arquivo)
       textoArquivo <- readLines(input$arquivo$datapath, encoding="UTF-8")
       textoLimitado <- NULL
@@ -31,18 +29,7 @@ function(input, output, session) {
         textoLimitado <- textoArquivo[-((limiteLinhas+1):totalLinhas)]
         totalLinhas <<- limiteLinhas
       }
-  
-      textoCompleto = ""
-  
-      # Verifica total de caracteres
-      totalCaracteres <- 0
-  
-      for(x in textoArquivo)
-      {
-        totalCaracteres = totalCaracteres + str_length(x)
-        textoCompleto <- paste(textoCompleto, "<p>", x)
-      }
-  
+
       # Carrega arquivo
       prepararDados(textoLimitado)
     })
@@ -62,38 +49,68 @@ function(input, output, session) {
              )
 
     #######
-    # Informações do arquivo
+    # Informações do arquivo e texto
     #######
+    
+    textoPorParagrafo = ""
+    textoPorFrase = ""
+    
+    totalCaracteres <- 0
+    numLinha <- 0
+    for(paragrafo in textPrepared)
+    {
+      numLinha <- numLinha + 1
+      totalCaracteres = totalCaracteres + str_length(paragrafo)
+      
+      textoPorParagrafo <- paste(textoPorParagrafo,
+                                 "<p>",
+                                 "<b>",numLinha,"</b>:",
+                                 paragrafo)
 
-    output$arquivoInfo <- renderText({
+    }
+    
+    textSentenced <- paste(textPrepared,collapse=" ")
+    frases <- tokens(textSentenced,"sentence")
+    
+    numFrase <- 0
+    for(frase in frases[[1]])
+    {
+      numFrase <- numFrase + 1
+      textoPorFrase <- paste(textoPorFrase,
+                             "<p>",
+                             "<b>",numFrase,"</b>:",
+                             frase)
+    }
+    
+    output$arquivoInf <- renderUI({
+      
       limiteTexto <- ""
       if(limiteLinhas > 0 && totalLinhas > limiteLinhas)
       {
         limiteTexto <- paste("<div style='color: red;'>
                             ATENÇÃO! Foram selecionadas apenas as primeiras ",
-                            limiteLinhas,
-                            " linhas do arquivo selecionado
+                             limiteLinhas,
+                             " linhas do arquivo selecionado
                         </div>")
       }
-
-      paste(
-            "<b>Nome: </b>", input$arquivo$name, "<br>",
-            "<b>Caracteres: </b>", format(round(as.numeric(totalCaracteres), 1), nsmall=0, big.mark="."), "<br>",
-            "<b>Linhas: </b>", format(round(as.numeric(totalLinhas), 1), nsmall=0, big.mark="."), "<br>",
-            limiteTexto
-            )
+      
+      HTML(paste(
+        "<b>Nome: </b>", input$arquivo$name, "<br>",
+        "<b>Total de caracteres: </b>", format(round(as.numeric(totalCaracteres), 1), nsmall=0, big.mark="."), "<br>",
+        "<b>Total de parágrafos/linhas: </b>", format(round(as.numeric(totalLinhas), 1), nsmall=0, big.mark="."), "<br>",
+        "<b>Total de frases: </b>", format(round(as.numeric(numFrase), 1), nsmall=0, big.mark="."), "<br>",
+        limiteTexto
+      ))
     })
-
-
-    #######
-    # Texto completo
-    #######
-
-    output$arquivoTexto <- renderText(
-    {
-      textoCompleto
+    
+    output$arquivoPar <- renderUI({
+      HTML(paste(textoPorParagrafo))
     })
-
+    
+    output$arquivoFra <- renderUI({
+      HTML(paste(textoPorFrase))
+    })
+    
     #######
     # Nuvem de palavras
     #######
@@ -108,61 +125,6 @@ function(input, output, session) {
                    backgroundColor='white',
                    shape = 'diamond')
       })
-    })
-
-    #######
-    # Grafo de palavras
-    #######
-
-    observeEvent(
-    {
-      input$grafosCorrSlider
-      input$grafosTamanhoSlider
-      input$grafosFreqSlider
-      input$grafosPesoLinhas
-    },
-    {
-      output$grafos <- renderImage(
-      {
-        outfile <- tempfile(fileext='.png')
-
-        ajusteTamanho <- 1
-        if(input$grafosCorrSlider < 15)
-          ajusteTamanho <- 3
-
-        correlacao = input$grafosCorrSlider
-
-        # O tamanho da imagem a ser exibida é influenciado pela correlação
-        # Não fazer isto, possibilita gerar imagens com os grafos sobrepostos entre si.
-        tamanhoReal = (0.4-correlacao)*10000*ajusteTamanho
-        tamanhoEscala = tamanhoReal * (input$grafosTamanhoSlider/100)
-
-        withProgress({
-          setProgress(message = "Gerando grafo...")
-        
-          # A frequência mínima usada no findFreqTerms baseia-se na quantidade 
-          # de palavras mais frequentes escolhida pelo usuário
-          freqMinima <- head(dataFrame, input$grafosQtdeSlider)[input$grafosQtdeSlider,2]
-        
-          png(outfile, width=tamanhoReal, height=tamanhoReal)
-          plot(dtm,
-               term = findFreqTerms(dtm, lowfreq=freqMinima),
-               corThreshold = correlacao,
-               weighting = input$grafosPesoLinhas,
-               attrs=list(node=list(width=5,fontsize=15,fontcolor="blue",color="red"))
-          )
-          dev.off()
-        })
-        
-        # Retorna o grafo
-        list(src = outfile,
-             alt = "Grafo",
-             width = tamanhoEscala,
-             height = tamanhoEscala)
-      },
-      deleteFile = TRUE)
-      
-      shinyjs::enable("downloadGrafo")
     })
 
     #######
@@ -288,11 +250,14 @@ function(input, output, session) {
       
         textAnalyzed <- textPrepared
         
+        legendaGrafico <- "Linha/Parágrafo"
+        
         if(input$sentimentosPorFrase == TRUE)
         {
           textSentenced <- paste(textAnalyzed,collapse=" ")
           sentences <- tokens(textSentenced,"sentence")
           textAnalyzed <- sentences[[1]]
+          legendaGrafico <- "Frase"
         }
         
         dataFrameSent <- data.frame(text = textAnalyzed)
@@ -382,7 +347,6 @@ function(input, output, session) {
                        y=comment_sentiment_op)
             ) +
               geom_bar(stat = "identity", aes(fill=comment_sentiment_op)) +
-              #scale_color_gradient(low = "red", high = "blue") +
               scale_fill_gradient2(midpoint = mid,
                                    low = "red",
                                    mid = "grey",
@@ -391,13 +355,12 @@ function(input, output, session) {
                                    guide_legend(title="Pontos"),
                                    limits = c(-10, 10),
                                    breaks = seq(-10, 10, 4)#,
-                                   #guides(fill=guide_legend(title="Pontos"))
               )+
-              geom_rect(aes(xmin = 0, xmax = 0, ymin = -10, ymax = 10)) +     # Truque pra exibir de -10 a 10
+              geom_rect(aes(xmin = 0, xmax = 0, ymin = -10, ymax = 10)) +   # Truque pra exibir de -10 a 10
               scale_y_continuous(breaks = seq(from = -10, to = 10, by = 1)) +
-              scale_x_continuous(breaks = seq(0,length(textAnalyzed), 2*input$precisaoSentimentosOpLexicon)) +
-              ggtitle(paste("Análise por linha com o OpLexicon")) +
-              labs(y = "Pontuação", x = "Linha") +
+              scale_x_continuous(breaks = seq(0,length(textAnalyzed), input$precisaoSentimentosOpLexicon)) +
+              ggtitle(paste("Análise por",legendaGrafico,"com o OpLexicon")) +
+              labs(y = "Pontuação", x = legendaGrafico) +
               theme(
                 plot.title = element_text(size=14, face="bold", hjust=0.5),
                 axis.text.x = element_text(size=11),
@@ -407,22 +370,25 @@ function(input, output, session) {
               coord_flip()
           )
           
-          most_pos <- which.max(dataFrameSentOp$most_pos)
-          most_neg <- which.min(dataFrameSentOp$most_neg)
+          most_pos_op <- which.max(dataFrameSentOp$most_pos)
+          most_neg_op <- which.min(dataFrameSentOp$most_neg)
           
-          output$sentimentosTextosOpLexicon <- renderText({
-            paste(
+          pontos_most_pos_op <- dataFrameSentOp$most_pos[most_pos_op]
+          pontos_most_neg_op <- dataFrameSentOp$most_neg[most_neg_op]
+          
+          output$sentimentosTextosOpLexicon <- renderUI({
+            HTML(paste(
               "<b>Total de registros: </b>", length(textAnalyzed), "<br>",
               "<b>Total analisado: </b>", nrow(dataFrameSentOp), "<br><br>",
               "<b>Mais positivo(a): </b><br><i>",
-              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentOp$linha_id[most_pos]],
-              "</i><br><b>Pontos:</b> ", dataFrameSentOp$most_pos[most_pos],
+              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentOp$linha_id[most_pos_op]],
+              "</i><br><b>Pontos:</b> ", pontos_most_pos_op,
               "<br><br>",
               "<b>Mais negativo(a): </b><br><i>",
-              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentOp$linha_id[most_neg]],
-              "</i><br><b>Pontos:</b> ", dataFrameSentOp$most_neg[most_neg],
+              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentOp$linha_id[most_neg_op]],
+              "</i><br><b>Pontos:</b> ", pontos_most_neg_op,
               "<br><br>"
-            )
+            ))
           })
           
           #
@@ -454,7 +420,6 @@ function(input, output, session) {
                        y=comment_sentiment_lex)
             ) +
               geom_bar(stat = "identity", aes(fill=comment_sentiment_lex)) +
-              #scale_color_gradient(low = "red", high = "blue") +
               scale_fill_gradient2(midpoint = mid,
                                    low = "red",
                                    mid = "grey",
@@ -463,13 +428,12 @@ function(input, output, session) {
                                    guide_legend(title="Pontos"),
                                    limits = c(-10, 10),
                                    breaks = seq(-10, 10, 4)#,
-                                   #guides(fill=guide_legend(title="Pontos"))
               )+
               geom_rect(aes(xmin = 0, xmax = 0, ymin = -10, ymax = 10)) +     # Truque pra exibir de -10 a 10
               scale_y_continuous(breaks = seq(from = -10, to = 10, by = 1)) +
-              scale_x_continuous(breaks = seq(0,length(textAnalyzed), 2*input$precisaoSentimentosSentiLex)) +
-              ggtitle(paste("Análise por linha com o SentiLex")) +
-              labs(y = "Pontuação", x = "Linha") +
+              scale_x_continuous(breaks = seq(0,length(textAnalyzed), input$precisaoSentimentosSentiLex)) +
+              ggtitle(paste("Análise por",legendaGrafico,"com o SentiLex")) +
+              labs(y = "Pontuação", x = legendaGrafico) +
               theme(
                 plot.title = element_text(size=14, face="bold", hjust=0.5),
                 axis.text.x = element_text(size=11),
@@ -479,26 +443,33 @@ function(input, output, session) {
               coord_flip()
           )
           
-          most_pos <- which.max(dataFrameSentLex$most_pos)
-          most_neg <- which.min(dataFrameSentLex$most_neg)
+          most_pos_lex <- which.max(dataFrameSentLex$most_pos)
+          most_neg_lex <- which.min(dataFrameSentLex$most_neg)
+          
+          pontos_most_pos_lex <- dataFrameSentLex$most_pos[most_pos_lex]
+          pontos_most_neg_lex <- dataFrameSentLex$most_neg[most_neg_lex]
           
           output$sentimentosTextosSentiLex <- renderText({
             paste(
               "<b>Total de registros: </b>", length(textAnalyzed), "<br>",
               "<b>Total analisado: </b>", nrow(dataFrameSentLex), "<br><br>",
               "<b>Mais positivo(a): </b><br><i>",
-              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentLex$linha_id[most_pos]],
-              "</i><br><b>Pontos:</b> ", dataFrameSentLex$most_pos[most_pos],
+              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentLex$linha_id[most_pos_lex]],
+              "</i><br><b>Pontos:</b> ", pontos_most_pos_lex,
               "<br><br>",
               "<b>Mais negativo(a): </b><br><i>",
-              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentLex$linha_id[most_neg]],
-              "</i><br><b>Pontos:</b> ", dataFrameSentLex$most_neg[most_neg],
+              dataFrameSent$text[dataFrameSent$linha_id == dataFrameSentLex$linha_id[most_neg_lex]],
+              "</i><br><b>Pontos:</b> ", pontos_most_neg_lex,
               "<br><br>"
             )
           })
           
         })
     })
+    
+    #######
+    # Grafo de palavras
+    #######
     
     observeEvent(
     {
@@ -619,7 +590,7 @@ function(input, output, session) {
   output$sobre <- renderText({
     paste(
       "<b>Desenvolvido por:</b>", "<br>",
-      "Jonatha Martins Cardoso <ojonathacardoso@gmail.com>",
+      "Jonatha Martins Cardoso - ojonathacardoso@gmail.com",
       "<br>","<br>",
       "<b>Código-fonte e instruções de instalação:</b>","<br>",
       "<a href='https://github.com/ojonathacardoso/ranalyzer'>https://github.com/ojonathacardoso/ranalyzer</a>",
@@ -632,90 +603,8 @@ function(input, output, session) {
   cores<- c("#cbb3fd","#fdb3b6", "#b3f4fd", "#e5fdb3", "#fdb3f9", 
             "#f8fdb3", "#fde1b3", "#b11a48", "#4964fc", "#1ab185")
   
-  # Recebe os dois data frames de entrada e gera o grafo (visNetwork) das disciplinas 
-  # e seus pré-requisitos
-  # data frame disciplinas: matriz curricular com informações de código, nome, sigla, 
-  # semestre, sequência no semestre e observações
-  # data frame prerequisitos: informações com pré-requisitos entre as 
-  # disciplinas - origem -> destino
-  # O parâmetro tipo serve para indicar se F: grafo fixo; ou M: grafo móvel
-  curriculo.interativo<-function() {
-    
-    tipo = "M"
-    
-    df.disciplinas <- read.csv2('cico.csv', header=TRUE, sep=";",
-                                quote="", encoding="UTF-8")
-    df.prerequisitos <- read.csv2('cico_prerequisitos.csv', header=TRUE, sep=";",
-                                  quote="", encoding="UTF-8")
-    
-    # colocando as informações do data frame de disciplinas na variável disciplinas
-    disciplinas <- data.frame(id=df.disciplinas[,"codigo"],
-                              nome=df.disciplinas[,"nome"],
-                              sigla=df.disciplinas[,"sigla"],
-                              semestre=df.disciplinas[,"semestre"],
-                              num=df.disciplinas[,"num"],
-                              obs=df.disciplinas[,"obs"])
-    
-    # Descobrindo o número de semestres do curso
-    numero.semestres <- max(df.disciplinas[,"semestre"])
-    
-    # Colocando as informações do data frame de pré-requisitos na variável prerequisitos
-    prerequisitos <- data.frame(from=df.prerequisitos[,"from"], 
-                                to=df.prerequisitos[,"to"])
-    
-    # Definindo todas as características dos nodos (disciplinas)
-    disciplinas$shape <- "square"
-    disciplinas$shadow <- TRUE
-    # Texto que aparece quando o mouse é colocado sobre o nodo
-    disciplinas$title <- paste0("(",disciplinas$id,") ",disciplinas$nome,"<br>",
-                                disciplinas$semestre,"o. semestre","<br>",
-                                disciplinas$obs)
-    # Texto que aparece abaixo do nodo
-    disciplinas$label <- disciplinas$sigla
-    #disciplinas$color <- cores[disciplinas$semestre]
-    disciplinas$labelHighlightBold <- TRUE
-    
-    if (tipo == "F") {
-      disciplinas$fixed <- TRUE
-      disciplinas$x <- disciplinas$num * 350
-      disciplinas$y <- disciplinas$semestre * 250
-      disciplinas$font <- "32px arial black"
-      disciplinas$size <- 40
-      disciplinas$borderWidth <- 3
-    }
-    else if (tipo == "M") {
-      disciplinas$font <- "18px arial black"
-      disciplinas$size <- 20
-      disciplinas$borderWidth <- 3
-    }
-    
-    # Configurando arestas: pré-requisitos
-    prerequisitos$arrows <- "to"
-    prerequisitos$width <- 4
-    prerequisitos$selectionWidth <- 10
-
-    
-    #dtm,
-    #term = findFreqTerms(dtm, lowfreq=freqMinima),
-    #corThreshold = correlacao
-    
-    
-    
-    # Gera um grafo de disciplinas como nodos e pré-requisitos como arestas
-    grafo <- visNetwork(dtm, correlacao, 
-                        margin=c(0, 0, 0, 0)) %>%
-      #visInteraction(dragNodes = FALSE) %>%
-      #visLayout(hierarchical = TRUE) %>%
-      visOptions(highlightNearest = TRUE)
-    
-    return (grafo)
-  }
-  
   output$arquivo <- eventReactive(input$arquivo, 
   {
-    output$arquivoInfo <- renderText({""})
-    output$arquivoTexto <- renderText({""})
-
     inputArquivo()
   })
   
